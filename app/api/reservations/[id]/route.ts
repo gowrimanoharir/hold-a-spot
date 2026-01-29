@@ -7,10 +7,10 @@ import { isValidUUID, createErrorResponse } from '@/lib/utils/validation';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reservationId = params.id;
+    const { id: reservationId } = await params;
     const { searchParams } = new URL(request.url);
     const cancelledBy = searchParams.get('cancelled_by') || 'user'; // 'user' or 'admin'
 
