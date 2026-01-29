@@ -28,7 +28,7 @@ export const supabaseServer = createClient(supabaseUrl, supabaseServiceRoleKey, 
 /**
  * Safely handle database errors and return user-friendly messages
  */
-export function handleDatabaseError(error: any): {
+export function handleDatabaseError(error: unknown): {
   error: string;
   details?: string;
   code?: string;
@@ -36,8 +36,8 @@ export function handleDatabaseError(error: any): {
   console.error('Database error:', error);
 
   // PostgreSQL error codes
-  const errorCode = error?.code;
-  const errorMessage = error?.message || 'An unknown error occurred';
+  const errorCode = (error as { code?: string })?.code;
+  const errorMessage = (error as { message?: string })?.message || 'An unknown error occurred';
 
   // Handle specific errors
   if (errorCode === '23505') {

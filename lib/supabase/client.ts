@@ -41,7 +41,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  */
 export function subscribeToTable(
   table: string,
-  callback: (payload: any) => void,
+  callback: (payload: unknown) => void,
   filter?: { column: string; value: string | number }
 ) {
   let channel = supabase.channel(`public:${table}`);
@@ -75,6 +75,6 @@ export function subscribeToTable(
 /**
  * Unsubscribe from real-time channel
  */
-export async function unsubscribeFromChannel(subscription: any) {
+export async function unsubscribeFromChannel(subscription: ReturnType<typeof subscribeToTable>) {
   await supabase.removeChannel(subscription);
 }

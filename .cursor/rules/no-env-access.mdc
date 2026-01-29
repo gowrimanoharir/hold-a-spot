@@ -1,0 +1,43 @@
+---
+description: Never read or access environment files containing sensitive data
+alwaysApply: true
+---
+
+# Environment File Protection
+
+**NEVER** read, access, or display the contents of environment files.
+
+## Protected Files
+
+- `.env`
+- `.env.local`
+- `.env.*.local` (e.g., `.env.development.local`, `.env.production.local`)
+- `.env.development`
+- `.env.production`
+- Any file matching pattern: `.env*`
+
+## Rules
+
+1. ❌ **DO NOT** use the Read tool on any `.env` files
+2. ❌ **DO NOT** display environment variable values
+3. ❌ **DO NOT** suggest reading `.env` files to debug issues
+4. ✅ **DO** reference `.env.example` or `.env.local.example` templates
+5. ✅ **DO** help users create/update `.env` files by:
+   - Providing the template structure
+   - Explaining what each variable means
+   - Guiding them to add values themselves
+
+## Example (Correct Approach)
+
+```bash
+# ❌ WRONG
+Read the .env.local file to see what's configured
+
+# ✅ CORRECT
+"Check your .env.local file to ensure NEXT_PUBLIC_SUPABASE_URL is set"
+"Add this variable to your .env.local: NEXT_PUBLIC_SUPABASE_URL=your-value"
+```
+
+## Rationale
+
+Environment files contain sensitive secrets (API keys, database passwords, tokens) that should never be exposed in conversation history or logs.
