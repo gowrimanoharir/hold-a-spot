@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
+import Alert from '@/components/ui/Alert';
 import { formatDateTime, formatTimeRange } from '@/lib/utils/time';
 import type { ReservationWithDetails } from '@/lib/types';
 
@@ -14,18 +16,24 @@ interface SessionCardProps {
 
 export default function SessionCard({ reservation, onCancel }: SessionCardProps) {
   const [cancelling, setCancelling] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'error' | 'success'>('error');
 
   const startTime = new Date(reservation.start_time);
   const endTime = new Date(reservation.end_time);
   const isPast = endTime < new Date();
   const isCancelled = reservation.status === 'cancelled';
 
-  const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel this reservation?')) {
-      return;
-    }
+  const handleCancelClick = () => {
+    setConfirmModalOpen(true);
+  };
 
+  const handleCancelConfirm = async () => {
+    setConfirmModalOpen(false);
     setCancelling(true);
+    
     try {
       const response = await fetch(`/api/reservations/${reservation.id}`, {
         method: 'DELETE',
@@ -35,11 +43,15 @@ export default function SessionCard({ reservation, onCancel }: SessionCardProps)
         onCancel();
       } else {
         const data: { error?: string } = await response.json();
-        alert(data.error || 'Failed to cancel reservation');
+        setAlertMessage(data.error || 'Failed to cancel reservation');
+        setAlertType('error');
+        setAlertOpen(true);
       }
     } catch (error) {
       console.error('Error cancelling reservation:', error);
-      alert('Failed to cancel reservation');
+      setAlertMessage('Failed to cancel reservation');
+      setAlertType('error');
+      setAlertOpen(true);
     } finally {
       setCancelling(false);
     }
@@ -130,7 +142,7 @@ export default function SessionCard({ reservation, onCancel }: SessionCardProps)
             <Button
               variant="danger"
               size="sm"
-              onClick={handleCancel}
+              onClick={handleCancelClick}
               disabled={cancelling}
               isLoading={cancelling}
             >
@@ -139,6 +151,41 @@ export default function SessionCard({ reservation, onCancel }: SessionCardProps)
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        title="Cancel Reservation"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmModalOpen(false)}
+            >
+              No, Keep It
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleCancelConfirm}
+            >
+              Yes, Cancel
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-text-secondary">
+          Are you sure you want to cancel this reservation? Your credits will be refunded.
+        </p>
+      </Modal>
+
+      {/* Alert Dialog */}
+      <Alert
+        isOpen={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        message={alertMessage}
+        type={alertType}
+      />
     </Card>
   );
 }

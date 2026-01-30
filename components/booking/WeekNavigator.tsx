@@ -29,7 +29,9 @@ export default function WeekNavigator({
   };
 
   const goToToday = () => {
-    onDateChange(new Date());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    onDateChange(today);
   };
 
   const isSelectedDate = (day: WeekDay) => {
@@ -96,12 +98,20 @@ export default function WeekNavigator({
       <div className="grid grid-cols-7 gap-2">
         {weekDays.map((day) => {
           const isSelected = isSelectedDate(day);
-          const isPast = day.date < new Date() && !day.isToday;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const dayNormalized = new Date(day.date);
+          dayNormalized.setHours(0, 0, 0, 0);
+          const isPast = dayNormalized < today;
 
           return (
             <button
               key={day.date.toISOString()}
-              onClick={() => onDateChange(day.date)}
+              onClick={() => {
+                const normalizedDate = new Date(day.date);
+                normalizedDate.setHours(0, 0, 0, 0);
+                onDateChange(normalizedDate);
+              }}
               disabled={isPast}
               className={`
                 relative p-4 rounded-xl transition-all duration-200

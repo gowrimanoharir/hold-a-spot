@@ -5,6 +5,7 @@ import WeekNavigator from '@/components/booking/WeekNavigator';
 import FacilityFilter from '@/components/booking/FacilityFilter';
 import TimeSlotGrid from '@/components/booking/TimeSlotGrid';
 import BookingModal from '@/components/booking/BookingModal';
+import Alert from '@/components/ui/Alert';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -19,7 +20,11 @@ export default function BookPage() {
   const [emailError, setEmailError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  });
   const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>([]);
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);
 
@@ -28,6 +33,10 @@ export default function BookPage() {
   const [selectedFacility, setSelectedFacility] = useState<FacilityWithSport | null>(null);
   const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
+
+  // Alert state
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   // Data hooks
   const startOfDay = useMemo(() => {
@@ -130,7 +139,8 @@ export default function BookPage() {
 
   const handleSlotClick = (facility: FacilityWithSport, startTime: Date, endTime: Date) => {
     if (!userId) {
-      alert('Please enter your email to book a slot');
+      setAlertMessage('Please enter your email to book a slot');
+      setAlertOpen(true);
       return;
     }
 
@@ -235,6 +245,14 @@ export default function BookPage() {
         userId={userId || ''}
         currentCredits={credits}
         onBookingSuccess={handleBookingSuccess}
+      />
+
+      {/* Alert Dialog */}
+      <Alert
+        isOpen={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        message={alertMessage}
+        type="warning"
       />
     </div>
   );

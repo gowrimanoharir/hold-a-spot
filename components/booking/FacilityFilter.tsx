@@ -1,21 +1,38 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { FacilityWithSport, FacilityType } from '@/lib/types';
+import type { FacilityWithSport, FacilityType, Sport } from '@/lib/types';
 
 interface FacilityFilterProps {
   onFilterChange: (facilityIds: string[]) => void;
 }
 
 export default function FacilityFilter({ onFilterChange }: FacilityFilterProps) {
+  const [sports, setSports] = useState<Sport[]>([]);
+  const [selectedSportId, setSelectedSportId] = useState<string>('all');
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);
   const [selectedType, setSelectedType] = useState<'all' | FacilityType>('all');
   const [selectedFacilities, setSelectedFacilities] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
+  const fetchSports = useCallback(async () => {
+    try {
+      const response = await fetch('/api/sports');
+      if (response.ok) {
+        const data: Sport[] = await response.json();
+        setSports(data);
+      }
+    } catch (error) {
+      console.error('Error fetching sports:', error);
+    }
+  }, []);
+
   const fetchFacilities = useCallback(async () => {
     try {
-      const response = await fetch('/api/facilities');
+      const url = selectedSportId === 'all' 
+        ? '/api/facilities'
+        : `/api/facilities?sport_id=${selectedSportId}`;
+      const response = await fetch(url);
       if (response.ok) {
         const data: FacilityWithSport[] = await response.json();
         setFacilities(data);
@@ -27,12 +44,16 @@ export default function FacilityFilter({ onFilterChange }: FacilityFilterProps) 
     } catch (error) {
       console.error('Error fetching facilities:', error);
     }
-  }, [onFilterChange]);
+  }, [selectedSportId, onFilterChange]);
+
+  useEffect(() => {
+    fetchSports();
+  }, [fetchSports]);
 
   useEffect(() => {
     fetchFacilities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedSportId]);
 
   const filteredFacilities = facilities.filter((facility) => {
     const matchesType = selectedType === 'all' || facility.type === selectedType;
@@ -67,6 +88,25 @@ export default function FacilityFilter({ onFilterChange }: FacilityFilterProps) 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-md">
       <h3 className="text-lg font-bold text-almost-black mb-4">Filter Facilities</h3>
+
+      {/* Sport Selector */}
+      <div className="mb-4">
+        <label className="block text-sm font-semibold text-almost-black mb-2">
+          Sport
+        </label>
+        <select
+          value={selectedSportId}
+          onChange={(e) => setSelectedSportId(e.target.value)}
+          className="w-full px-4 py-2 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold"
+        >
+          <option value="all">All Sports</option>
+          {sports.map((sport) => (
+            <option key={sport.id} value={sport.id}>
+              {sport.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Type Filter */}
       <div className="flex gap-2 mb-4">
