@@ -36,39 +36,34 @@ export default function BookPage() {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
-  // Data hooks
-  const startOfDay = useMemo(() => {
-    // Create date at start of selected day in local timezone
-    const date = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      selectedDate.getDate(),
-      0,
-      0,
-      0,
-      0
-    );
-    return date.toISOString();
+  // Data hooks - fetch for entire week
+  const startOfWeek = useMemo(() => {
+    // Get Monday of the selected week
+    const monday = new Date(selectedDate);
+    const day = monday.getDay();
+    const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString();
   }, [selectedDate]);
 
-  const endOfDay = useMemo(() => {
-    // Create date at end of selected day in local timezone
-    const date = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      selectedDate.getDate(),
-      23,
-      59,
-      59,
-      999
-    );
-    return date.toISOString();
+  const endOfWeek = useMemo(() => {
+    // Get Sunday of the selected week
+    const monday = new Date(selectedDate);
+    const day = monday.getDay();
+    const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return sunday.toISOString();
   }, [selectedDate]);
 
   const { reservations, refetch: refetchReservations } = useReservations(
     undefined,
-    startOfDay,
-    endOfDay
+    startOfWeek,
+    endOfWeek
   );
 
   const { balance: credits, refetch: refetchCredits } = useCredits(userId || undefined);
