@@ -48,21 +48,68 @@ export default function CalendarGrid({
     return slots;
   }, []);
 
-  // Check if a time slot has reservations
-  const getSlotReservations = (date: Date, timeSlot: string) => {
+  // Check if a reservation starts in this slot
+  const getReservationsStartingInSlot = (date: Date, timeSlot: string) => {
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const slotStart = new Date(date);
+    slotStart.setHours(hours, minutes, 0, 0);
+
+    return reservations.filter(res => {
+      const resStart = new Date(res.start_time);
+      
+      // Check if reservation starts in this exact slot
+      return resStart.getTime() === slotStart.getTime() &&
+        resStart.toDateString() === date.toDateString();
+    });
+  };
+
+  // Check if this slot is occupied (but not the start)
+  const isSlotOccupied = (date: Date, timeSlot: string) => {
     const [hours, minutes] = timeSlot.split(':').map(Number);
     const slotStart = new Date(date);
     slotStart.setHours(hours, minutes, 0, 0);
     const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
 
-    return reservations.filter(res => {
+    return reservations.some(res => {
       const resStart = new Date(res.start_time);
       const resEnd = new Date(res.end_time);
       
-      // Check if reservation overlaps with this slot
+      // Slot is occupied if reservation overlaps but doesn't start here
+      return resStart < slotStart && resEnd > slotStart &&
+        resStart.toDateString() === date.toDateString();
+    });
+  };
+
+  // Check if all facilities are booked at this time slot
+  const areAllFacilitiesBooked = (date: Date, timeSlot: string) => {
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const slotStart = new Date(date);
+    slotStart.setHours(hours, minutes, 0, 0);
+    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+
+    // Get all reservations that overlap with this slot
+    const overlappingReservations = reservations.filter(res => {
+      const resStart = new Date(res.start_time);
+      const resEnd = new Date(res.end_time);
+      
       return resStart < slotEnd && resEnd > slotStart &&
         resStart.toDateString() === date.toDateString();
     });
+
+    // Get unique facility IDs that are booked
+    const bookedFacilityIds = new Set(overlappingReservations.map(res => res.facility_id));
+    
+    // Check if all available facilities are booked
+    return facilities.length > 0 && bookedFacilityIds.size >= facilities.length;
+  };
+
+  // Calculate height for reservation block
+  const getReservationHeight = (startTime: string, endTime: string) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const durationMinutes = (end.getTime() - start.getTime()) / (60 * 1000);
+    const slots = durationMinutes / 30;
+    return slots * 60; // 60px per slot
   };
 
   // Check if slot is in the past
@@ -171,42 +218,69 @@ export default function CalendarGrid({
 
                 {/* Day Columns */}
                 {weekDates.map((date, idx) => {
-                  const slotReservations = getSlotReservations(date, time);
+                  const reservationsStartingHere = getReservationsStartingInSlot(date, time);
+                  const isOccupied = isSlotOccupied(date, time);
+                  const allBooked = areAllFacilitiesBooked(date, time);
                   const isPast = isPastSlot(date, time);
-                  const hasReservations = slotReservations.length > 0;
+                  const isClickable = !isPast && !allBooked;
 
                   return (
                     <div
                       key={idx}
-                      onClick={() => !isPast && onSlotClick(date, time)}
+                      onClick={() => isClickable && onSlotClick(date, time)}
                       className={`
-                        flex-1 min-w-[100px] min-h-[60px] p-2 border-r border-cool-gray/30 
+                        flex-1 min-w-[100px] min-h-[60px] p-1 border-r border-cool-gray/30 
                         transition-colors relative
-                        ${isPast ? 'bg-gray-50 cursor-not-allowed' : 'cursor-pointer hover:bg-electric-cyan/5'}
+                        ${isPast ? 'bg-gray-50 cursor-not-allowed' : 
+                          allBooked ? 'cursor-not-allowed' : 
+                          'cursor-pointer hover:bg-electric-cyan/5'}
                       `}
                     >
-                      {hasReservations && (
-                        <div className="text-xs space-y-1">
-                          {slotReservations.map((res) => {
-                            const facility = facilities.find(f => f.id === res.facility_id);
-                            const facilityName = facility?.name || 'Reserved';
-                            
-                            return (
-                              <div
-                                key={res.id}
-                                className="bg-gradient-to-r from-electric-cyan/30 to-vibrant-magenta/30 border-l-4 border-vibrant-magenta p-2 rounded text-xs font-semibold"
-                              >
-                                <div className="truncate text-almost-black">
-                                  {facilityName}
-                                </div>
-                                <div className="text-gray-700 text-[10px] font-normal">Occupied</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {isPast && !hasReservations && (
-                        <div className="text-gray-400 text-xs">Past</div>
+                      {/* Show reservation blocks that start in this slot */}
+                      {reservationsStartingHere.map((res, resIdx) => {
+                        const facility = facilities.find(f => f.id === res.facility_id);
+                        const facilityName = facility?.name || 'Reserved';
+                        const facilityType = facility?.type || '';
+                        const height = getReservationHeight(res.start_time, res.end_time);
+                        
+                        // Calculate width and position for multiple concurrent reservations
+                        const totalReservations = reservationsStartingHere.length;
+                        const widthPercent = 100 / totalReservations;
+                        const leftPercent = (100 / totalReservations) * resIdx;
+                        
+                        return (
+                          <div
+                            key={res.id}
+                            className="absolute bg-gradient-to-br from-electric-cyan/40 to-vibrant-magenta/40 border-l-4 border-vibrant-magenta rounded-md p-2 shadow-sm z-10"
+                            style={{ 
+                              height: `${height - 4}px`,
+                              width: `${widthPercent}%`,
+                              left: `${leftPercent}%`
+                            }}
+                          >
+                            <div className="text-xs font-bold text-almost-black truncate">
+                              {facilityName}
+                            </div>
+                            <div className="text-[10px] text-gray-700 capitalize">
+                              {facilityType}
+                            </div>
+                            <div className="text-[10px] text-gray-600 mt-1">
+                              Reserved
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Show "Past" or "Occupied" indicators */}
+                      {!reservationsStartingHere.length && (
+                        <>
+                          {isPast && !isOccupied && (
+                            <div className="text-gray-400 text-[10px]">Past</div>
+                          )}
+                          {isOccupied && (
+                            <div className="bg-gradient-to-br from-electric-cyan/20 to-vibrant-magenta/20 h-full w-full rounded"></div>
+                          )}
+                        </>
                       )}
                     </div>
                   );
