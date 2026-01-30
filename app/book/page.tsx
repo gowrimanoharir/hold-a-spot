@@ -24,7 +24,7 @@ export default function BookPage() {
   });
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
-  const [selectedSportIds, setSelectedSportIds] = useState<string[]>([]);
+  const [selectedSportId, setSelectedSportId] = useState<string>('');
 
   // Booking modal state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -98,8 +98,10 @@ export default function BookPage() {
       if (response.ok) {
         const data: Sport[] = await response.json();
         setSports(data);
-        // Select all sports by default
-        setSelectedSportIds(data.map(s => s.id));
+        // Select first sport by default
+        if (data.length > 0) {
+          setSelectedSportId(data[0].id);
+        }
       }
     } catch (error) {
       console.error('Error fetching sports:', error);
@@ -123,28 +125,15 @@ export default function BookPage() {
     }
   };
 
-  // Filter facilities by selected sports
+  // Filter facilities by selected sport
   const filteredFacilities = useMemo(() => {
-    if (selectedSportIds.length === 0) return facilities;
-    return facilities.filter(f => selectedSportIds.includes(f.sport_id));
-  }, [facilities, selectedSportIds]);
+    if (!selectedSportId) return facilities;
+    return facilities.filter(f => f.sport_id === selectedSportId);
+  }, [facilities, selectedSportId]);
 
-  // Handle sport selection toggle
-  const handleSportToggle = (sportId: string) => {
-    setSelectedSportIds(prev => {
-      if (prev.includes(sportId)) {
-        // Don't allow deselecting all sports
-        if (prev.length === 1) return prev;
-        return prev.filter(id => id !== sportId);
-      } else {
-        return [...prev, sportId];
-      }
-    });
-  };
-
-  const selectAllSports = () => {
-    setSelectedSportIds(sports.map(s => s.id));
-  };
+  // Get selected sport name
+  const selectedSport = sports.find(s => s.id === selectedSportId);
+  const sportName = selectedSport?.name || 'sports';
 
   const handleLogin = async () => {
     setEmailError('');
@@ -214,11 +203,11 @@ export default function BookPage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header with User Entry */}
       <div className="bg-white rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gradient mb-2">Book a Court</h1>
             <p className="text-ocean-teal">
-              Reserve your spot for pickleball courts and practice bays
+              Reserve your spot for {sportName.toLowerCase()} courts and practice bays
             </p>
           </div>
 
@@ -226,6 +215,20 @@ export default function BookPage() {
           <div className="w-full md:w-auto">
             {!userId ? (
               <div className="flex flex-col sm:flex-row gap-3">
+                {/* Sport Selector Dropdown */}
+                {sports.length > 0 && (
+                  <select
+                    value={selectedSportId}
+                    onChange={(e) => setSelectedSportId(e.target.value)}
+                    className="px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold text-almost-black"
+                  >
+                    {sports.map((sport) => (
+                      <option key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <Input
                   type="email"
                   placeholder="Enter your email"
@@ -245,6 +248,20 @@ export default function BookPage() {
               </div>
             ) : (
               <div className="flex items-center gap-4">
+                {/* Sport Selector Dropdown for logged in users */}
+                {sports.length > 0 && (
+                  <select
+                    value={selectedSportId}
+                    onChange={(e) => setSelectedSportId(e.target.value)}
+                    className="px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold text-almost-black"
+                  >
+                    {sports.map((sport) => (
+                      <option key={sport.id} value={sport.id}>
+                        {sport.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <div className="text-right">
                   <div className="text-sm text-ocean-teal">Logged in as</div>
                   <div className="font-semibold text-almost-black">{email}</div>
@@ -260,46 +277,31 @@ export default function BookPage() {
             )}
           </div>
         </div>
-
-        {/* Sport Filter */}
-        {sports.length > 0 && (
-          <div className="border-t-2 border-cool-gray pt-6">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-almost-black">
-                Filter by Sport
-              </label>
-              {selectedSportIds.length !== sports.length && (
-                <button
-                  onClick={selectAllSports}
-                  className="text-xs text-electric-cyan hover:text-vibrant-magenta transition-colors"
-                >
-                  Select All
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {sports.map((sport) => {
-                const isSelected = selectedSportIds.includes(sport.id);
-                return (
-                  <button
-                    key={sport.id}
-                    onClick={() => handleSportToggle(sport.id)}
-                    className={`
-                      px-4 py-2 rounded-lg font-semibold text-sm transition-all
-                      ${isSelected
-                        ? 'bg-gradient-to-r from-electric-cyan to-vibrant-magenta text-white shadow-md'
-                        : 'bg-cool-gray text-ocean-teal hover:bg-soft-lavender'
-                      }
-                    `}
-                  >
-                    {sport.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Facilities Display */}
+      {filteredFacilities.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 shadow-md">
+          <h2 className="text-xl font-bold text-almost-black mb-4">
+            Available {sportName} Facilities
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {filteredFacilities.map((facility) => (
+              <div
+                key={facility.id}
+                className="bg-gradient-to-br from-cool-gray to-soft-lavender/30 rounded-lg p-4 text-center border-2 border-transparent hover:border-electric-cyan transition-all"
+              >
+                <div className="text-sm font-semibold text-almost-black mb-1">
+                  {facility.name}
+                </div>
+                <div className="text-xs text-ocean-teal capitalize">
+                  {facility.type}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Calendar Grid */}
       <CalendarGrid

@@ -140,19 +140,18 @@ export default function CalendarGrid({
                       {hasReservations && (
                         <div className="text-xs space-y-1">
                           {slotReservations.map((res) => {
-                            const facilityNames = facilities
-                              .filter(f => f.id === res.facility_id)
-                              .map(f => f.name);
+                            const facility = facilities.find(f => f.id === res.facility_id);
+                            const facilityName = facility?.name || 'Reserved';
                             
                             return (
                               <div
                                 key={res.id}
-                                className="bg-gradient-to-r from-electric-cyan/20 to-vibrant-magenta/20 border-l-2 border-electric-cyan p-1 rounded text-xs"
+                                className="bg-gradient-to-r from-electric-cyan/30 to-vibrant-magenta/30 border-l-4 border-vibrant-magenta p-2 rounded text-xs font-semibold"
                               >
-                                <div className="font-semibold truncate">
-                                  {facilityNames.join(', ')}
+                                <div className="truncate text-almost-black">
+                                  {facilityName}
                                 </div>
-                                <div className="text-gray-600 text-[10px]">Reserved</div>
+                                <div className="text-gray-700 text-[10px] font-normal">Occupied</div>
                               </div>
                             );
                           })}

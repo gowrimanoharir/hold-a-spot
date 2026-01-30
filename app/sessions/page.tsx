@@ -78,12 +78,8 @@ export default function SessionsPage() {
               <div className="text-sm text-ocean-teal">Logged in as</div>
               <div className="font-semibold text-almost-black">{email}</div>
             </div>
-            <Button 
-              variant="primary" 
-              onClick={() => router.push('/book')}
-              className="bg-mint-green hover:bg-mint-green/90 text-white font-bold px-6 py-3"
-            >
-              Book a Court / Bay
+            <Button variant="primary" onClick={() => router.push('/book')}>
+              Book New Session
             </Button>
           </div>
         </div>
@@ -150,7 +146,7 @@ export default function SessionsPage() {
             <p className="text-gray-400 text-lg mb-4">No upcoming sessions</p>
             <Button 
               onClick={() => router.push('/book')}
-              className="bg-mint-green hover:bg-mint-green/90 text-white font-bold px-6 py-3"
+              className="bg-gradient-to-r from-mint-green to-mint-green/90 hover:scale-105 transition-transform text-white font-bold px-8 py-4 text-lg rounded-xl shadow-lg"
             >
               Book a Court / Bay
             </Button>
