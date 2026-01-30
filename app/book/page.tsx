@@ -25,6 +25,7 @@ export default function BookPage() {
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
   const [selectedSportId, setSelectedSportId] = useState<string>('');
+  const [selectedFacilityType, setSelectedFacilityType] = useState<'all' | 'court' | 'bay'>('all');
 
   // Booking modal state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -125,11 +126,22 @@ export default function BookPage() {
     }
   };
 
-  // Filter facilities by selected sport
+  // Filter facilities by selected sport and type
   const filteredFacilities = useMemo(() => {
-    if (!selectedSportId) return facilities;
-    return facilities.filter(f => f.sport_id === selectedSportId);
-  }, [facilities, selectedSportId]);
+    let filtered = facilities;
+    
+    // Filter by sport
+    if (selectedSportId) {
+      filtered = filtered.filter(f => f.sport_id === selectedSportId);
+    }
+    
+    // Filter by type
+    if (selectedFacilityType !== 'all') {
+      filtered = filtered.filter(f => f.type === selectedFacilityType);
+    }
+    
+    return filtered;
+  }, [facilities, selectedSportId, selectedFacilityType]);
 
   // Get selected sport name
   const selectedSport = sports.find(s => s.id === selectedSportId);
@@ -198,16 +210,28 @@ export default function BookPage() {
     refetchCredits();
   };
 
-  // Week navigation
+  // Week navigation with 4-week limit
   const handleWeekChange = (direction: 'prev' | 'next' | 'today') => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
     if (direction === 'today') {
-      const now = new Date();
-      setSelectedDate(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+      setSelectedDate(new Date(now));
     } else {
       const newDate = new Date(selectedDate);
       const daysToAdd = direction === 'next' ? 7 : -7;
       newDate.setDate(newDate.getDate() + daysToAdd);
-      setSelectedDate(newDate);
+      
+      // Calculate weeks from today
+      const diffTime = newDate.getTime() - now.getTime();
+      const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000));
+      
+      // Limit to 4 weeks ahead, allow going back to today
+      if (diffWeeks >= 0 && diffWeeks <= 4) {
+        setSelectedDate(newDate);
+      } else if (diffWeeks < 0 && newDate >= now) {
+        setSelectedDate(newDate);
+      }
     }
   };
 
@@ -224,24 +248,43 @@ export default function BookPage() {
             </p>
           </div>
 
-          {/* User Login/Info */}
-          <div className="w-full md:w-auto">
+          {/* Sport & Type Filters + User Info */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+            {/* Sport Selector */}
+            {sports.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold text-ocean-teal whitespace-nowrap">Sport:</label>
+                <select
+                  value={selectedSportId}
+                  onChange={(e) => setSelectedSportId(e.target.value)}
+                  className="min-w-[140px] px-3 py-2 border border-cool-gray rounded-lg focus:outline-none focus:ring-2 focus:ring-electric-cyan bg-white text-sm font-medium text-almost-black"
+                >
+                  {sports.map((sport) => (
+                    <option key={sport.id} value={sport.id}>
+                      {sport.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* Facility Type Filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-semibold text-ocean-teal whitespace-nowrap">Type:</label>
+              <select
+                value={selectedFacilityType}
+                onChange={(e) => setSelectedFacilityType(e.target.value as 'all' | 'court' | 'bay')}
+                className="min-w-[120px] px-3 py-2 border border-cool-gray rounded-lg focus:outline-none focus:ring-2 focus:ring-electric-cyan bg-white text-sm font-medium text-almost-black"
+              >
+                <option value="all">All</option>
+                <option value="court">Courts</option>
+                <option value="bay">Bays</option>
+              </select>
+            </div>
+
+            {/* User Login/Info */}
             {!userId ? (
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Sport Selector Dropdown */}
-                {sports.length > 0 && (
-                  <select
-                    value={selectedSportId}
-                    onChange={(e) => setSelectedSportId(e.target.value)}
-                    className="px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold text-almost-black"
-                  >
-                    {sports.map((sport) => (
-                      <option key={sport.id} value={sport.id}>
-                        {sport.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
+              <>
                 <Input
                   type="email"
                   placeholder="Enter your email"
@@ -258,63 +301,25 @@ export default function BookPage() {
                 >
                   Continue
                 </Button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center gap-4">
-                {/* Sport Selector Dropdown for logged in users */}
-                {sports.length > 0 && (
-                  <select
-                    value={selectedSportId}
-                    onChange={(e) => setSelectedSportId(e.target.value)}
-                    className="px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold text-almost-black"
-                  >
-                    {sports.map((sport) => (
-                      <option key={sport.id} value={sport.id}>
-                        {sport.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
+              <>
                 <div className="text-right">
-                  <div className="text-sm text-ocean-teal">Logged in as</div>
-                  <div className="font-semibold text-almost-black">{email}</div>
+                  <div className="text-xs text-ocean-teal">Logged in as</div>
+                  <div className="font-semibold text-sm text-almost-black">{email}</div>
                 </div>
                 <Badge variant="gradient" size="lg">
-                  <span className="font-display text-2xl">{credits}</span>
-                  <span className="ml-2">credits</span>
+                  <span className="font-display text-xl">{credits}</span>
+                  <span className="ml-1 text-sm">credits</span>
                 </Badge>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
-              </div>
+              </>
             )}
           </div>
         </div>
       </div>
-
-      {/* Facilities Display */}
-      {filteredFacilities.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 shadow-md">
-          <h2 className="text-xl font-bold text-almost-black mb-4">
-            Available {sportName} Facilities
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {filteredFacilities.map((facility) => (
-              <div
-                key={facility.id}
-                className="bg-gradient-to-br from-cool-gray to-soft-lavender/30 rounded-lg p-4 text-center border-2 border-transparent hover:border-electric-cyan transition-all"
-              >
-                <div className="text-sm font-semibold text-almost-black mb-1">
-                  {facility.name}
-                </div>
-                <div className="text-xs text-ocean-teal capitalize">
-                  {facility.type}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Calendar Grid */}
       <CalendarGrid
