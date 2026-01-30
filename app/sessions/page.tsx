@@ -8,7 +8,6 @@ import Button from '@/components/ui/Button';
 import { useUserReservations } from '@/hooks/useReservations';
 import { useCredits } from '@/hooks/useCredits';
 import { useRealtime } from '@/hooks/useRealtime';
-import { formatDate } from '@/lib/utils/time';
 
 export default function SessionsPage() {
   const router = useRouter();
@@ -26,7 +25,7 @@ export default function SessionsPage() {
   });
 
   const { reservations, refetch: refetchReservations } = useUserReservations(userId || undefined);
-  const { balance, resetDate, refetch: refetchCredits } = useCredits(userId || undefined);
+  const { balance, refetch: refetchCredits } = useCredits(userId || undefined);
 
   // Real-time updates
   useRealtime('reservations', () => {
@@ -110,11 +109,9 @@ export default function SessionsPage() {
             <div className="text-sm text-green-600 mt-1">Available Now</div>
           </div>
         </div>
-        {resetDate && (
-          <p className="text-center mt-4 text-sm text-ocean-teal">
-            Credits reset on {formatDate(new Date(resetDate))}
-          </p>
-        )}
+        <p className="text-center mt-4 text-sm text-ocean-teal">
+          Each week gets 10 free credits (Monday-Sunday)
+        </p>
       </div>
 
       {/* Upcoming Reservations */}

@@ -16,9 +16,9 @@ export interface Sport {
 export interface User {
   id: string;
   email: string;
-  created_at: string;
-  credits_reset_date: string;
+  bonus_credits: number;
   is_admin: boolean;
+  created_at: string;
 }
 
 export type FacilityType = 'court' | 'bay';
@@ -48,17 +48,6 @@ export interface Reservation {
   updated_at: string;
 }
 
-export type TransactionType = 'weekly_reset' | 'reservation' | 'refund' | 'admin_adjustment';
-
-export interface CreditTransaction {
-  id: string;
-  user_id: string;
-  amount: number;
-  transaction_type: TransactionType;
-  reservation_id: string | null;
-  notes: string | null;
-  created_at: string;
-}
 
 export interface CalendarBlock {
   id: string;
@@ -74,12 +63,6 @@ export interface CalendarBlock {
 // VIEW TYPES
 // ============================================
 
-export interface UserCreditBalance {
-  user_id: string;
-  email: string;
-  current_balance: number;
-  credits_reset_date: string;
-}
 
 export interface ActiveFacility extends Facility {
   sport_name: string;
@@ -97,13 +80,15 @@ export interface CreateUserRequest {
 
 export interface CreateUserResponse {
   user: User;
-  credits: number;
 }
 
 export interface GetCreditsResponse {
-  balance: number;
-  reset_date: string;
-  transactions: CreditTransaction[];
+  weekly_allowance: number;
+  used_this_week: number;
+  weekly_remaining: number;
+  bonus_credits: number;
+  total_available: number;
+  week_start: string;
 }
 
 export interface CreateReservationRequest {

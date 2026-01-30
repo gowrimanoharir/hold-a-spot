@@ -14,8 +14,7 @@ export function useRealtime(
     // Subscribe to table changes
     subscriptionRef.current = subscribeToTable(
       table,
-      (payload) => {
-        console.log('Real-time update received:', payload);
+      () => {
         onUpdate();
       },
       filter

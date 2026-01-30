@@ -9,6 +9,7 @@ interface CalendarGridProps {
   facilities: FacilityWithSport[];
   reservations: ReservationWithDetails[];
   onSlotClick: (date: Date, time: string) => void;
+  onWeekChange: (direction: 'prev' | 'next' | 'today') => void;
 }
 
 export default function CalendarGrid({
@@ -16,6 +17,7 @@ export default function CalendarGrid({
   facilities,
   reservations,
   onSlotClick,
+  onWeekChange,
 }: CalendarGridProps) {
   // Generate week starting from selected date's Monday
   const weekDates = useMemo(() => {
@@ -75,11 +77,57 @@ export default function CalendarGrid({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Format week range
+  const weekStart = weekDates[0];
+  const weekEnd = weekDates[6];
+  const monthStart = weekStart.toLocaleDateString('en-US', { month: 'short' });
+  const monthEnd = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+  const yearStart = weekStart.getFullYear();
+  const yearEnd = weekEnd.getFullYear();
+  
+  const weekRangeText = 
+    monthStart === monthEnd && yearStart === yearEnd
+      ? `${monthStart} ${weekStart.getDate()} - ${weekEnd.getDate()}, ${yearStart}`
+      : yearStart === yearEnd
+      ? `${monthStart} ${weekStart.getDate()} - ${monthEnd} ${weekEnd.getDate()}, ${yearStart}`
+      : `${monthStart} ${weekStart.getDate()}, ${yearStart} - ${monthEnd} ${weekEnd.getDate()}, ${yearEnd}`;
+
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-      {/* Header */}
+      {/* Header with Week Navigation */}
       <div className="p-4 border-b-2 border-cool-gray">
-        <h2 className="text-xl font-bold text-almost-black">Court / Bay Availability</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-almost-black">Court / Bay Availability</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-ocean-teal font-semibold">{weekRangeText}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onWeekChange('prev')}
+                className="p-2 rounded-lg hover:bg-cool-gray transition-colors"
+                aria-label="Previous week"
+              >
+                <svg className="w-5 h-5 text-ocean-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => onWeekChange('today')}
+                className="px-3 py-1 text-sm font-semibold text-electric-cyan hover:bg-electric-cyan hover:text-white rounded-lg transition-colors"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => onWeekChange('next')}
+                className="p-2 rounded-lg hover:bg-cool-gray transition-colors"
+                aria-label="Next week"
+              >
+                <svg className="w-5 h-5 text-ocean-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Calendar Grid */}

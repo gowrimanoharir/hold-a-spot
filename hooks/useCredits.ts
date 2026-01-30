@@ -39,9 +39,14 @@ export function useCredits(userId?: string) {
   }, [fetchCredits]);
 
   return {
-    balance: credits?.balance ?? 0,
-    resetDate: credits?.reset_date,
-    transactions: credits?.transactions ?? [],
+    weeklyAllowance: credits?.weekly_allowance ?? 10,
+    usedThisWeek: credits?.used_this_week ?? 0,
+    weeklyRemaining: credits?.weekly_remaining ?? 10,
+    bonusCredits: credits?.bonus_credits ?? 0,
+    totalAvailable: credits?.total_available ?? 10,
+    weekStart: credits?.week_start,
+    // Legacy field for backward compatibility
+    balance: credits?.total_available ?? 10,
     loading,
     error,
     refetch: fetchCredits,

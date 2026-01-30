@@ -71,45 +71,51 @@ export async function DELETE(
       );
     }
 
-    // Refund credits
-    const { error: refundError } = await supabaseServer
-      .from('credit_transactions')
-      .insert({
-        user_id: reservation.user_id,
-        amount: reservation.credits_used,
-        transaction_type: 'refund',
-        reservation_id: reservationId,
-        notes: `Refund for cancelled reservation`,
-      });
+    // Calculate if bonus credits need to be refunded
+    // Get week start for the cancelled booking
+    const bookingDate = new Date(reservation.start_time);
+    const weekStart = new Date(bookingDate);
+    weekStart.setDate(bookingDate.getDate() - ((bookingDate.getDay() + 6) % 7));
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
 
-    if (refundError) {
-      console.error('Failed to refund credits:', refundError);
-      // Don't fail the request, just log the error
-      // The reservation is still cancelled
-    }
+    // Get other confirmed reservations for this week (excluding this one)
+    const { data: weekReservations } = await supabaseServer
+      .from('reservations')
+      .select('credits_used')
+      .eq('user_id', reservation.user_id)
+      .eq('status', 'confirmed')
+      .neq('id', reservationId)
+      .gte('start_time', weekStart.toISOString())
+      .lt('start_time', weekEnd.toISOString());
 
-    // Get updated credit balance
-    const { data: user } = await supabaseServer
-      .from('users')
-      .select('credits_reset_date')
-      .eq('id', reservation.user_id)
-      .single();
-
-    let newBalance = 0;
-    if (user) {
-      const { data: transactions } = await supabaseServer
-        .from('credit_transactions')
-        .select('amount')
-        .eq('user_id', reservation.user_id)
-        .gte('created_at', user.credits_reset_date);
-
-      newBalance = transactions?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
+    const otherCreditsUsedThisWeek = weekReservations?.reduce((sum, res) => sum + Number(res.credits_used), 0) || 0;
+    
+    // If other bookings + this booking exceed 10, bonus credits were used
+    const totalCreditsUsed = otherCreditsUsedThisWeek + Number(reservation.credits_used);
+    const bonusUsed = Math.max(0, totalCreditsUsed - 10);
+    
+    // Refund bonus credits if they were used
+    if (bonusUsed > 0) {
+      const { data: user } = await supabaseServer
+        .from('users')
+        .select('bonus_credits')
+        .eq('id', reservation.user_id)
+        .single();
+        
+      if (user) {
+        await supabaseServer
+          .from('users')
+          .update({ bonus_credits: user.bonus_credits + bonusUsed })
+          .eq('id', reservation.user_id);
+      }
     }
 
     return NextResponse.json({
       message: 'Reservation cancelled successfully',
       refunded_credits: reservation.credits_used,
-      new_balance: newBalance,
     });
   } catch (error) {
     console.error('Error cancelling reservation:', error);

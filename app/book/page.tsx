@@ -18,7 +18,7 @@ export default function BookPage() {
   const [emailError, setEmailError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [selectedDate] = useState(() => {
+  const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   });
@@ -198,6 +198,19 @@ export default function BookPage() {
     refetchCredits();
   };
 
+  // Week navigation
+  const handleWeekChange = (direction: 'prev' | 'next' | 'today') => {
+    if (direction === 'today') {
+      const now = new Date();
+      setSelectedDate(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+    } else {
+      const newDate = new Date(selectedDate);
+      const daysToAdd = direction === 'next' ? 7 : -7;
+      newDate.setDate(newDate.getDate() + daysToAdd);
+      setSelectedDate(newDate);
+    }
+  };
+
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -309,6 +322,7 @@ export default function BookPage() {
         facilities={filteredFacilities}
         reservations={reservations}
         onSlotClick={handleSlotClick}
+        onWeekChange={handleWeekChange}
       />
 
       {/* Booking Modal */}

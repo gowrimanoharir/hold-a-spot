@@ -4,6 +4,20 @@ import { FACILITY_HOURS } from '../types';
 import type { WeekDay } from '../types';
 
 /**
+ * Get the start of the week (Monday at midnight) for a given date
+ * @param date - Date to get week start for
+ * @returns Monday at midnight for the week containing the given date
+ */
+export function getWeekStart(date: Date): Date {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = result.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  result.setDate(diff);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+/**
  * Generate 30-minute time slots for a given date
  * @param date - Date to generate slots for
  * @param facilityHours - Opening and closing hours (default: 6 AM - 10 PM)

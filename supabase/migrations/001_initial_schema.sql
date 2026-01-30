@@ -22,9 +22,9 @@ CREATE TABLE sports (
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT NOT NULL UNIQUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  credits_reset_date TIMESTAMPTZ NOT NULL DEFAULT DATE_TRUNC('week', NOW() + INTERVAL '1 week'),
-  is_admin BOOLEAN NOT NULL DEFAULT false
+  bonus_credits INT NOT NULL DEFAULT 0,
+  is_admin BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Index for faster email lookups
@@ -72,6 +72,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE INDEX idx_reservations_facility_time ON reservations(facility_id, start_time, end_time);
 CREATE INDEX idx_reservations_user ON reservations(user_id, start_time DESC);
 CREATE INDEX idx_reservations_status ON reservations(status);
+CREATE INDEX idx_reservations_user_week ON reservations(user_id, start_time) WHERE status = 'confirmed';
 
 -- Exclusion constraint: no overlapping confirmed reservations on same facility
 ALTER TABLE reservations 
@@ -81,23 +82,6 @@ EXCLUDE USING gist (
   tstzrange(start_time, end_time) WITH &&
 )
 WHERE (status = 'confirmed');
-
--- ============================================
--- CREDIT TRANSACTIONS TABLE (Ledger)
--- ============================================
-CREATE TABLE credit_transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  amount DECIMAL(5,2) NOT NULL,
-  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('weekly_reset', 'reservation', 'refund', 'admin_adjustment')),
-  reservation_id UUID REFERENCES reservations(id) ON DELETE SET NULL,
-  notes TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Index for fast credit balance calculations
-CREATE INDEX idx_credit_transactions_user_time ON credit_transactions(user_id, created_at DESC);
-CREATE INDEX idx_credit_transactions_type ON credit_transactions(transaction_type);
 
 -- ============================================
 -- CALENDAR BLOCKS TABLE (Future use)
@@ -136,6 +120,39 @@ CREATE TRIGGER update_reservations_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
+-- HELPER FUNCTION: Get week start (Monday)
+-- ============================================
+CREATE OR REPLACE FUNCTION get_week_start(input_date TIMESTAMPTZ)
+RETURNS TIMESTAMPTZ AS $$
+BEGIN
+  RETURN DATE_TRUNC('week', input_date);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- ============================================
+-- HELPER FUNCTION: Calculate credits used for a week
+-- ============================================
+CREATE OR REPLACE FUNCTION get_credits_used_for_week(
+  p_user_id UUID,
+  p_week_start TIMESTAMPTZ
+)
+RETURNS DECIMAL AS $$
+DECLARE
+  total_credits DECIMAL;
+BEGIN
+  SELECT COALESCE(SUM(credits_used), 0)
+  INTO total_credits
+  FROM reservations
+  WHERE user_id = p_user_id
+    AND status = 'confirmed'
+    AND start_time >= p_week_start
+    AND start_time < (p_week_start + INTERVAL '7 days');
+    
+  RETURN total_credits;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
 -- ROW LEVEL SECURITY (Disabled for MVP)
 -- ============================================
 -- We'll enable RLS later when adding auth
@@ -144,18 +161,6 @@ CREATE TRIGGER update_reservations_updated_at
 -- ============================================
 -- VIEWS (Helpful queries)
 -- ============================================
-
--- View: Current user credit balances
-CREATE OR REPLACE VIEW user_credit_balances AS
-SELECT 
-  u.id as user_id,
-  u.email,
-  COALESCE(SUM(ct.amount), 0) as current_balance,
-  u.credits_reset_date
-FROM users u
-LEFT JOIN credit_transactions ct ON ct.user_id = u.id 
-  AND ct.created_at >= u.credits_reset_date
-GROUP BY u.id, u.email, u.credits_reset_date;
 
 -- View: Active facilities with sport info
 CREATE OR REPLACE VIEW active_facilities AS
@@ -178,9 +183,8 @@ COMMENT ON TABLE sports IS 'Sports available in the facility (pickleball, tennis
 COMMENT ON TABLE users IS 'User accounts (email-based, no auth for MVP)';
 COMMENT ON TABLE facilities IS 'Physical facilities (courts or bays) linked to sports';
 COMMENT ON TABLE reservations IS 'User bookings with time slots and credit usage';
-COMMENT ON TABLE credit_transactions IS 'Ledger of all credit movements (never store balance directly)';
 COMMENT ON TABLE calendar_blocks IS 'Admin-created blocks for maintenance/events';
 
-COMMENT ON COLUMN users.credits_reset_date IS 'Next Monday when credits reset to 10';
+COMMENT ON COLUMN users.bonus_credits IS 'Purchased credits (shared across all weeks, for future use)';
 COMMENT ON COLUMN reservations.status IS 'confirmed = active, cancelled = user cancelled, completed = past';
-COMMENT ON COLUMN credit_transactions.amount IS 'Can be positive (reset, refund) or negative (booking)';
+COMMENT ON COLUMN reservations.credits_used IS 'Credits consumed by this booking (deducted from weekly allowance + bonus pool)';

@@ -4,8 +4,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer, handleDatabaseError } from '@/lib/supabase/server';
 import { isValidEmail, sanitizeEmail, createErrorResponse } from '@/lib/utils/validation';
-import { getNextMondayMidnight } from '@/lib/utils/credits';
-import { CREDITS_PER_WEEK } from '@/lib/types';
 import type { CreateUserRequest, CreateUserResponse } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
@@ -38,29 +36,18 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingUser) {
-      // User exists, return existing user with current credits
-      const { data: creditData } = await supabaseServer
-        .from('credit_transactions')
-        .select('amount')
-        .eq('user_id', existingUser.id)
-        .gte('created_at', existingUser.credits_reset_date);
-
-      const currentBalance = creditData?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
-
+      // User exists, return existing user
       return NextResponse.json({
         user: existingUser,
-        credits: currentBalance,
       } as CreateUserResponse);
     }
 
-    // Create new user
-    const nextResetDate = getNextMondayMidnight();
-
+    // Create new user with 0 bonus credits
     const { data: newUser, error: createError } = await supabaseServer
       .from('users')
       .insert({
         email: sanitizedEmail,
-        credits_reset_date: nextResetDate.toISOString(),
+        bonus_credits: 0,
       })
       .select()
       .single();
@@ -72,25 +59,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Give initial credits
-    const { error: creditsError } = await supabaseServer
-      .from('credit_transactions')
-      .insert({
-        user_id: newUser.id,
-        amount: CREDITS_PER_WEEK,
-        transaction_type: 'weekly_reset',
-        notes: 'Initial credits',
-      });
-
-    if (creditsError) {
-      console.error('Failed to create initial credits:', creditsError);
-      // Don't fail the request, just log the error
-    }
-
     return NextResponse.json(
       {
         user: newUser,
-        credits: CREDITS_PER_WEEK,
       } as CreateUserResponse,
       { status: 201 }
     );

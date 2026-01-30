@@ -13,7 +13,6 @@ import {
 import {
   calculateCredits,
   validateBookingDuration,
-  hasSufficientCredits,
 } from '@/lib/utils/credits';
 import type { CreateReservationRequest, CreateReservationResponse } from '@/lib/types';
 
@@ -169,10 +168,10 @@ export async function POST(request: NextRequest) {
     // Calculate credits needed
     const creditsNeeded = calculateCredits(start_time, end_time);
 
-    // Get user's current credit balance
+    // Get user
     const { data: user, error: userError } = await supabaseServer
       .from('users')
-      .select('id, credits_reset_date')
+      .select('id, bonus_credits')
       .eq('id', user_id)
       .single();
 
@@ -183,21 +182,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get credit transactions
-    const { data: transactions } = await supabaseServer
-      .from('credit_transactions')
-      .select('amount')
-      .eq('user_id', user_id)
-      .gte('created_at', user.credits_reset_date);
+    // Get week start for the booking
+    const bookingDate = new Date(start_time);
+    const weekStart = new Date(bookingDate);
+    weekStart.setDate(bookingDate.getDate() - ((bookingDate.getDay() + 6) % 7));
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
 
-    const currentBalance = transactions?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
+    // Get credits already used for this week
+    const { data: weekReservations } = await supabaseServer
+      .from('reservations')
+      .select('credits_used')
+      .eq('user_id', user_id)
+      .eq('status', 'confirmed')
+      .gte('start_time', weekStart.toISOString())
+      .lt('start_time', weekEnd.toISOString());
+
+    const usedThisWeek = weekReservations?.reduce((sum, res) => sum + Number(res.credits_used), 0) || 0;
+    const weeklyAllowanceLeft = Math.max(0, 10 - usedThisWeek);
+    const totalAvailable = weeklyAllowanceLeft + user.bonus_credits;
 
     // Check sufficient credits
-    if (!hasSufficientCredits(currentBalance, creditsNeeded)) {
+    if (creditsNeeded > totalAvailable) {
       return NextResponse.json(
         createErrorResponse(
           'Insufficient credits',
-          `You need ${creditsNeeded} credits but only have ${currentBalance}`
+          `You need ${creditsNeeded} credits but only have ${totalAvailable} available (${weeklyAllowanceLeft} weekly + ${user.bonus_credits} bonus)`
         ),
         { status: 400 }
       );
@@ -235,32 +247,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Deduct credits
-    const { error: creditError } = await supabaseServer
-      .from('credit_transactions')
-      .insert({
-        user_id,
-        amount: -creditsNeeded,
-        transaction_type: 'reservation',
-        reservation_id: reservation.id,
-        notes: `Booking ${facility.name}`,
-      });
+    // Deduct bonus credits if needed (only if weekly allowance is exhausted)
+    const bonusToDeduct = Math.max(0, creditsNeeded - weeklyAllowanceLeft);
+    
+    if (bonusToDeduct > 0) {
+      const { error: creditError } = await supabaseServer
+        .from('users')
+        .update({ bonus_credits: user.bonus_credits - bonusToDeduct })
+        .eq('id', user_id);
 
-    if (creditError) {
-      console.error('Failed to deduct credits:', creditError);
-      // Rollback reservation
-      await supabaseServer
-        .from('reservations')
-        .delete()
-        .eq('id', reservation.id);
+      if (creditError) {
+        console.error('Failed to deduct bonus credits:', creditError);
+        // Rollback reservation
+        await supabaseServer
+          .from('reservations')
+          .delete()
+          .eq('id', reservation.id);
 
-      return NextResponse.json(
-        createErrorResponse('Failed to process booking'),
-        { status: 500 }
-      );
+        return NextResponse.json(
+          createErrorResponse('Failed to process booking'),
+          { status: 500 }
+        );
+      }
     }
 
-    const remainingCredits = currentBalance - creditsNeeded;
+    const remainingCredits = totalAvailable - creditsNeeded;
 
     return NextResponse.json(
       {
