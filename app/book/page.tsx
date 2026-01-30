@@ -39,14 +39,30 @@ export default function BookPage() {
 
   // Data hooks
   const startOfDay = useMemo(() => {
-    const date = new Date(selectedDate);
-    date.setHours(0, 0, 0, 0);
+    // Create date at start of selected day in local timezone
+    const date = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
     return date.toISOString();
   }, [selectedDate]);
 
   const endOfDay = useMemo(() => {
-    const date = new Date(selectedDate);
-    date.setHours(23, 59, 59, 999);
+    // Create date at end of selected day in local timezone
+    const date = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
     return date.toISOString();
   }, [selectedDate]);
 

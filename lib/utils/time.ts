@@ -124,11 +124,13 @@ export function getWeekDaysWithMetadata(referenceDate: Date = new Date()): WeekD
       0
     );
     
+    const isToday = dayDate.getTime() === today.getTime();
+    
     return {
       date: date,
       dayName: dayNames[date.getDay()],
       dayNumber: date.getDate(),
-      isToday: dayDate.getTime() === today.getTime(),
+      isToday: isToday,
     };
   });
 }
