@@ -82,24 +82,13 @@ This guide will help you set up your Supabase database and connect it to your lo
 
 ---
 
-## Step 6: Test the Connection
+## Step 6: Verify Setup Complete
 
-1. Start your development server:
-   ```bash
-   npm run dev
-   ```
-
-2. Open your browser to `http://localhost:3000`
-
-3. Open browser console (F12) and run this test:
-   ```javascript
-   // This tests the connection
-   fetch('/api/facilities')
-     .then(r => r.json())
-     .then(console.log)
-   ```
-
-4. You should see an array of 10 facilities (4 courts + 6 bays) once we build the API in Phase 2
+At this point, you have:
+- ✅ Supabase project created
+- ✅ Database schema and seed data loaded
+- ✅ Real-time enabled
+- ✅ Environment variables configured
 
 ---
 
@@ -147,9 +136,15 @@ You can explore your database in Supabase:
 
 ## What's Next?
 
-✅ **Phase 1 Complete!** Your database is ready.
+✅ **Phase 1 Complete!** Your database foundation is ready.
 
-🚀 **Next: Phase 2** - We'll build the API routes to interact with this database.
+🚀 **Next: Phase 2** - Build API routes:
+- User management APIs
+- Facilities APIs  
+- Reservations APIs
+- Credit calculation logic
+
+No API routes exist yet - they'll be built in Phase 2.
 
 ---
 

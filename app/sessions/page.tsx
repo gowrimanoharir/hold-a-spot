@@ -78,35 +78,47 @@ export default function SessionsPage() {
               <div className="text-sm text-ocean-teal">Logged in as</div>
               <div className="font-semibold text-almost-black">{email}</div>
             </div>
-            <Button variant="primary" onClick={() => router.push('/book')}>
-              Book New Session
+            <Button 
+              variant="primary" 
+              onClick={() => router.push('/book')}
+              className="bg-mint-green hover:bg-mint-green/90 text-white font-bold px-6 py-3"
+            >
+              Book a Court / Bay
             </Button>
           </div>
         </div>
       </div>
 
       {/* Credit Balance Card */}
-      <div className="bg-gradient-to-br from-electric-cyan to-vibrant-magenta rounded-2xl p-8 shadow-lg text-white">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2 opacity-90">Available Credits</h2>
-            <div className="flex items-baseline gap-3">
-              <span className="text-6xl font-bold font-display">{balance}</span>
-              <span className="text-2xl opacity-80">credits</span>
-            </div>
-            {resetDate && (
-              <p className="mt-3 opacity-80">
-                Resets on {formatDate(new Date(resetDate))}
-              </p>
-            )}
+      <div className="bg-white rounded-2xl p-8 shadow-md border-2 border-cool-gray">
+        <h2 className="text-2xl font-bold text-almost-black mb-6">Credit Balance</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Budget */}
+          <div className="text-center p-6 bg-cool-gray rounded-xl">
+            <div className="text-sm font-semibold text-ocean-teal mb-2">Credit Budget</div>
+            <div className="text-5xl font-bold font-display text-almost-black">10</div>
+            <div className="text-sm text-gray-500 mt-1">Weekly Allowance</div>
           </div>
 
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 text-center">
-            <div className="text-sm opacity-80 mb-1">Weekly Allowance</div>
-            <div className="text-4xl font-bold font-display">10</div>
-            <div className="text-sm opacity-80 mt-1">credits</div>
+          {/* Used */}
+          <div className="text-center p-6 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl border-2 border-orange-300">
+            <div className="text-sm font-semibold text-orange-700 mb-2">Credits Used</div>
+            <div className="text-5xl font-bold font-display text-orange-600">{10 - balance}</div>
+            <div className="text-sm text-orange-600 mt-1">This Week</div>
+          </div>
+
+          {/* Remaining */}
+          <div className="text-center p-6 bg-gradient-to-br from-mint-green/20 to-mint-green/10 rounded-xl border-2 border-mint-green">
+            <div className="text-sm font-semibold text-green-700 mb-2">Credits Remain</div>
+            <div className="text-5xl font-bold font-display text-mint-green">{balance}</div>
+            <div className="text-sm text-green-600 mt-1">Available Now</div>
           </div>
         </div>
+        {resetDate && (
+          <p className="text-center mt-4 text-sm text-ocean-teal">
+            Credits reset on {formatDate(new Date(resetDate))}
+          </p>
+        )}
       </div>
 
       {/* Upcoming Reservations */}
@@ -136,8 +148,11 @@ export default function SessionsPage() {
               />
             </svg>
             <p className="text-gray-400 text-lg mb-4">No upcoming sessions</p>
-            <Button onClick={() => router.push('/book')}>
-              Book Your First Session
+            <Button 
+              onClick={() => router.push('/book')}
+              className="bg-mint-green hover:bg-mint-green/90 text-white font-bold px-6 py-3"
+            >
+              Book a Court / Bay
             </Button>
           </div>
         ) : (

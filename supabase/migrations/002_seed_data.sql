@@ -39,9 +39,10 @@ END $$;
 -- ============================================
 -- SEED TEST USERS (Optional - for development)
 -- ============================================
-INSERT INTO users (email) VALUES
-  ('test@example.com'),
-  ('demo@example.com');
+-- Set credits_reset_date to LAST MONDAY so transactions count
+INSERT INTO users (email, credits_reset_date) VALUES
+  ('test@example.com', DATE_TRUNC('week', NOW())),
+  ('demo@example.com', DATE_TRUNC('week', NOW()));
 
 -- Give test users initial credits (10 credits)
 INSERT INTO credit_transactions (user_id, amount, transaction_type, notes)

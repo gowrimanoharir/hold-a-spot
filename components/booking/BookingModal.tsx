@@ -1,61 +1,96 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
-import { formatDateTime, formatTimeRange } from '@/lib/utils/time';
-import { calculateCredits, calculateDurationMinutes, creditsToTimeString } from '@/lib/utils/credits';
+import { formatTime, formatDate } from '@/lib/utils/time';
 import type { FacilityWithSport } from '@/lib/types';
 
-interface BookingModalProps {
+interface EnhancedBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  facility: FacilityWithSport | null;
-  startTime: Date | null;
-  endTime: Date | null;
+  selectedDate: Date | null;
+  selectedTime: string | null;
   userId: string;
   currentCredits: number;
+  facilities: FacilityWithSport[];
   onBookingSuccess: () => void;
 }
 
-export default function BookingModal({
+export default function EnhancedBookingModal({
   isOpen,
   onClose,
-  facility,
-  startTime,
-  endTime,
+  selectedDate,
+  selectedTime,
   userId,
   currentCredits,
+  facilities,
   onBookingSuccess,
-}: BookingModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+}: EnhancedBookingModalProps) {
+  const [facilityType, setFacilityType] = useState<'court' | 'bay'>('court');
+  const [duration, setDuration] = useState(30);
+  const [selectedFacilityId, setSelectedFacilityId] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
+  const [error, setError] = useState('');
 
-  const creditsNeeded = startTime && endTime ? calculateCredits(startTime, endTime) : 0;
-  const duration = startTime && endTime ? calculateDurationMinutes(startTime, endTime) : 0;
-  const remainingCredits = currentCredits - creditsNeeded;
-  const hasEnoughCredits = remainingCredits >= 0;
+  // Filter facilities by type
+  const availableFacilities = facilities.filter(f => f.type === facilityType);
 
-  const handleBooking = async () => {
-    if (!facility || !startTime || !endTime || !hasEnoughCredits) return;
+  // Calculate booking details
+  const creditsNeeded = duration / 30; // 1 credit per 30 minutes
+  const creditsRemaining = currentCredits - creditsNeeded;
 
-    setLoading(true);
-    setError(null);
+  // Reset selections when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFacilityType('court');
+      setDuration(30);
+      setSelectedFacilityId('');
+      setError('');
+    }
+  }, [isOpen]);
+
+  // Auto-select first facility when type changes
+  useEffect(() => {
+    if (availableFacilities.length > 0) {
+      setSelectedFacilityId(availableFacilities[0].id);
+    }
+  }, [facilityType, availableFacilities]);
+
+  const handleBook = async () => {
+    if (!selectedDate || !selectedTime || !selectedFacilityId) {
+      setError('Please select all options');
+      return;
+    }
+
+    if (creditsNeeded > currentCredits) {
+      setError('Not enough credits');
+      return;
+    }
+
+    setIsBooking(true);
+    setError('');
 
     try {
+      // Calculate start and end times
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const startTime = new Date(selectedDate);
+      startTime.setHours(hours, minutes, 0, 0);
+      
+      const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+
       const response = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
-          facility_id: facility.id,
+          facility_id: selectedFacilityId,
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
         }),
       });
 
-      const data: { error?: string; reservation?: unknown; remaining_credits?: number } = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create booking');
@@ -64,178 +99,142 @@ export default function BookingModal({
       onBookingSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Booking error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create booking');
     } finally {
-      setLoading(false);
+      setIsBooking(false);
     }
   };
 
-  if (!facility || !startTime || !endTime) return null;
+  if (!selectedDate || !selectedTime) {
+    return null;
+  }
+
+  const [hours, minutes] = selectedTime.split(':').map(Number);
+  const startTime = new Date(selectedDate);
+  startTime.setHours(hours, minutes, 0, 0);
+  const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Confirm Booking"
-      size="md"
+      title="Book Your Court / Bay"
       footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={loading}>
+        <div className="flex gap-3 justify-end">
+          <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
             variant="primary"
-            onClick={handleBooking}
-            disabled={!hasEnoughCredits || loading}
-            isLoading={loading}
+            onClick={handleBook}
+            isLoading={isBooking}
+            disabled={!selectedFacilityId || creditsNeeded > currentCredits}
           >
-            {hasEnoughCredits ? 'Confirm Booking' : 'Insufficient Credits'}
+            Complete Booking!
           </Button>
-        </>
+        </div>
       }
     >
-      <div className="space-y-6">
-        {/* Facility Info */}
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-xl gradient-sport flex items-center justify-center flex-shrink-0">
-            <svg
-              className="w-8 h-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-almost-black mb-1">{facility.name}</h3>
-            <div className="flex items-center gap-2">
-              <Badge variant="info" size="sm">
-                {facility.type}
-              </Badge>
-              <Badge variant="success" size="sm">
-                {facility.sport.name}
-              </Badge>
-            </div>
+      <div className="space-y-4">
+        {/* Selected Date/Time Display */}
+        <div className="bg-cool-gray p-4 rounded-lg">
+          <div className="text-sm text-ocean-teal mb-1">Selected Time</div>
+          <div className="font-bold text-almost-black">
+            {formatDate(selectedDate)} at {formatTime(startTime)}
           </div>
         </div>
 
-        {/* Booking Details */}
-        <div className="bg-cool-gray rounded-xl p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-electric-cyan flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <div>
-              <div className="text-sm text-ocean-teal font-semibold">Date & Time</div>
-              <div className="text-almost-black font-semibold">{formatDateTime(startTime)}</div>
-              <div className="text-sm text-ocean-teal">{formatTimeRange(startTime, endTime)}</div>
-            </div>
-          </div>
+        {/* Court Type Dropdown */}
+        <div>
+          <label className="block text-sm font-semibold text-almost-black mb-2">
+            Court Type
+          </label>
+          <select
+            value={facilityType}
+            onChange={(e) => setFacilityType(e.target.value as 'court' | 'bay')}
+            className="w-full px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold"
+          >
+            <option value="court">Court</option>
+            <option value="bay">Bay (Solo Practice)</option>
+          </select>
+        </div>
 
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-electric-cyan flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div>
-              <div className="text-sm text-ocean-teal font-semibold">Duration</div>
-              <div className="text-almost-black font-semibold">
-                {duration} minutes ({creditsToTimeString(creditsNeeded)})
-              </div>
-            </div>
+        {/* Duration Dropdown */}
+        <div>
+          <label className="block text-sm font-semibold text-almost-black mb-2">
+            Length of Time
+          </label>
+          <select
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            className="w-full px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold"
+          >
+            <option value={30}>30 minutes</option>
+            <option value={60}>60 minutes (1 hour)</option>
+            <option value={90}>90 minutes (1.5 hours)</option>
+            <option value={120}>120 minutes (2 hours)</option>
+            <option value={150}>150 minutes (2.5 hours)</option>
+            <option value={180}>180 minutes (3 hours)</option>
+            <option value={210}>210 minutes (3.5 hours)</option>
+            <option value={240}>240 minutes (4 hours)</option>
+          </select>
+          <div className="text-xs text-gray-500 mt-1">
+            End time: {formatTime(endTime)}
           </div>
         </div>
 
-        {/* Credits Summary */}
-        <div className="bg-gradient-to-br from-electric-cyan/10 to-vibrant-magenta/10 rounded-xl p-4 border-2 border-electric-cyan/20">
-          <h4 className="font-bold text-almost-black mb-3">Credit Summary</h4>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-ocean-teal">Current Balance</span>
-              <span className="font-bold font-display text-almost-black">{currentCredits} credits</span>
+        {/* Court Selection Dropdown */}
+        <div>
+          <label className="block text-sm font-semibold text-almost-black mb-2">
+            Court Selection
+          </label>
+          <select
+            value={selectedFacilityId}
+            onChange={(e) => setSelectedFacilityId(e.target.value)}
+            className="w-full px-4 py-3 border-2 border-cool-gray rounded-lg focus:outline-none focus:border-electric-cyan transition-colors bg-white font-semibold"
+          >
+            {availableFacilities.map((facility) => (
+              <option key={facility.id} value={facility.id}>
+                {facility.name} ({facility.type})
+              </option>
+            ))}
+          </select>
+          {availableFacilities.length === 0 && (
+            <div className="text-sm text-red-500 mt-1">
+              No {facilityType}s available
             </div>
-            <div className="flex justify-between">
-              <span className="text-ocean-teal">Booking Cost</span>
-              <span className="font-bold font-display text-vibrant-magenta">-{creditsNeeded} credits</span>
-            </div>
-            <div className="border-t border-electric-cyan/20 pt-2 flex justify-between">
-              <span className="font-semibold text-almost-black">Remaining Balance</span>
-              <span className={`font-bold font-display text-xl ${
-                hasEnoughCredits ? 'text-mint-green' : 'text-red-500'
-              }`}>
-                {remainingCredits} credits
-              </span>
-            </div>
+          )}
+        </div>
+
+        {/* Credits Display */}
+        <div className="bg-gradient-to-r from-electric-cyan/10 to-vibrant-magenta/10 p-4 rounded-lg space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-almost-black">Credits</span>
+            <span className="text-2xl font-bold font-display text-vibrant-magenta">
+              {creditsNeeded} {creditsNeeded === 1 ? 'Credit' : 'Credits'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-almost-black">Credits Remaining</span>
+            <span className={`text-lg font-bold ${creditsRemaining < 0 ? 'text-red-500' : 'text-mint-green'}`}>
+              {creditsRemaining} {creditsRemaining === 1 ? 'Credit' : 'Credits'}
+            </span>
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="flex-1">
-              <div className="font-semibold text-red-700">Booking Failed</div>
-              <div className="text-sm text-red-600">{error}</div>
-            </div>
+          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
-        {/* Insufficient Credits Warning */}
-        {!hasEnoughCredits && (
-          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="flex-1">
-              <div className="font-semibold text-yellow-800">Insufficient Credits</div>
-              <div className="text-sm text-yellow-700">
-                You need {creditsNeeded} credits but only have {currentCredits}. Credits reset every Monday.
-              </div>
-            </div>
+        {/* Warning if not enough credits */}
+        {creditsNeeded > currentCredits && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+            <p className="text-sm text-yellow-700">
+              ⚠️ Not enough credits. You need {creditsNeeded} but only have {currentCredits}.
+            </p>
           </div>
         )}
       </div>

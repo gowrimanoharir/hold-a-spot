@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import WeekNavigator from '@/components/booking/WeekNavigator';
-import FacilityFilter from '@/components/booking/FacilityFilter';
-import TimeSlotGrid from '@/components/booking/TimeSlotGrid';
+import CalendarGrid from '@/components/booking/CalendarGrid';
 import BookingModal from '@/components/booking/BookingModal';
 import Alert from '@/components/ui/Alert';
 import Input from '@/components/ui/Input';
@@ -20,18 +18,16 @@ export default function BookPage() {
   const [emailError, setEmailError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [selectedDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   });
-  const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>([]);
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);
 
   // Booking modal state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  const [selectedFacility, setSelectedFacility] = useState<FacilityWithSport | null>(null);
-  const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(null);
-  const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
+  const [selectedBookingDate, setSelectedBookingDate] = useState<Date | null>(null);
+  const [selectedBookingTime, setSelectedBookingTime] = useState<string | null>(null);
 
   // Alert state
   const [alertOpen, setAlertOpen] = useState(false);
@@ -152,16 +148,15 @@ export default function BookPage() {
     localStorage.removeItem('hold-a-spot-email');
   };
 
-  const handleSlotClick = (facility: FacilityWithSport, startTime: Date, endTime: Date) => {
+  const handleSlotClick = (date: Date, time: string) => {
     if (!userId) {
       setAlertMessage('Please enter your email to book a slot');
       setAlertOpen(true);
       return;
     }
 
-    setSelectedFacility(facility);
-    setSelectedStartTime(startTime);
-    setSelectedEndTime(endTime);
+    setSelectedBookingDate(date);
+    setSelectedBookingTime(time);
     setBookingModalOpen(true);
   };
 
@@ -170,9 +165,6 @@ export default function BookPage() {
     refetchCredits();
   };
 
-  const filteredFacilities = facilities.filter((f) =>
-    selectedFacilityIds.includes(f.id)
-  );
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -226,40 +218,23 @@ export default function BookPage() {
         </div>
       </div>
 
-      {/* Week Navigator */}
-      <WeekNavigator
-        currentDate={selectedDate}
-        onDateChange={setSelectedDate}
+      {/* Calendar Grid */}
+      <CalendarGrid
         selectedDate={selectedDate}
+        facilities={facilities}
+        reservations={reservations}
+        onSlotClick={handleSlotClick}
       />
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Facility Filter Sidebar */}
-        <div className="lg:col-span-1">
-          <FacilityFilter onFilterChange={setSelectedFacilityIds} />
-        </div>
-
-        {/* Time Slot Grid */}
-        <div className="lg:col-span-3">
-          <TimeSlotGrid
-            key={selectedDate.toISOString()}
-            selectedDate={selectedDate}
-            facilities={filteredFacilities}
-            reservations={reservations}
-            onSlotClick={handleSlotClick}
-          />
-        </div>
-      </div>
 
       {/* Booking Modal */}
       <BookingModal
         isOpen={bookingModalOpen}
         onClose={() => setBookingModalOpen(false)}
-        facility={selectedFacility}
-        startTime={selectedStartTime}
-        endTime={selectedEndTime}
+        selectedDate={selectedBookingDate}
+        selectedTime={selectedBookingTime}
         userId={userId || ''}
         currentCredits={credits}
+        facilities={facilities}
         onBookingSuccess={handleBookingSuccess}
       />
 

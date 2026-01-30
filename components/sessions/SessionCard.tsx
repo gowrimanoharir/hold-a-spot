@@ -133,10 +133,12 @@ export default function SessionCard({ reservation, onCancel }: SessionCardProps)
 
         {/* Credits & Actions */}
         <div className="flex flex-col items-end gap-3">
-          <Badge variant="gradient" size="lg">
-            <span className="font-display text-lg">{reservation.credits_used}</span>
-            <span className="ml-1 text-sm">credits</span>
-          </Badge>
+          <div className="bg-gradient-to-r from-orange-500 to-orange-400 text-white px-6 py-3 rounded-full shadow-lg">
+            <span className="font-display text-2xl font-bold">{reservation.credits_used}</span>
+            <span className="ml-2 text-base font-semibold">
+              {reservation.credits_used === 1 ? 'Credit' : 'Credits'}
+            </span>
+          </div>
 
           {!isPast && !isCancelled && (
             <Button
