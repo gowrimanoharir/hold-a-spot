@@ -10,7 +10,7 @@ import Badge from '@/components/ui/Badge';
 import { useReservations } from '@/hooks/useReservations';
 import { useCredits } from '@/hooks/useCredits';
 import { useRealtime } from '@/hooks/useRealtime';
-import type { FacilityWithSport } from '@/lib/types';
+import type { FacilityWithSport, Sport } from '@/lib/types';
 
 export default function BookPage() {
   const [email, setEmail] = useState('');
@@ -23,6 +23,8 @@ export default function BookPage() {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   });
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);
+  const [sports, setSports] = useState<Sport[]>([]);
+  const [selectedSportIds, setSelectedSportIds] = useState<string[]>([]);
 
   // Booking modal state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -85,6 +87,25 @@ export default function BookPage() {
     }
   }, []);
 
+  // Fetch sports
+  useEffect(() => {
+    fetchSports();
+  }, []);
+
+  const fetchSports = async () => {
+    try {
+      const response = await fetch('/api/sports');
+      if (response.ok) {
+        const data: Sport[] = await response.json();
+        setSports(data);
+        // Select all sports by default
+        setSelectedSportIds(data.map(s => s.id));
+      }
+    } catch (error) {
+      console.error('Error fetching sports:', error);
+    }
+  };
+
   // Fetch facilities
   useEffect(() => {
     fetchFacilities();
@@ -100,6 +121,29 @@ export default function BookPage() {
     } catch (error) {
       console.error('Error fetching facilities:', error);
     }
+  };
+
+  // Filter facilities by selected sports
+  const filteredFacilities = useMemo(() => {
+    if (selectedSportIds.length === 0) return facilities;
+    return facilities.filter(f => selectedSportIds.includes(f.sport_id));
+  }, [facilities, selectedSportIds]);
+
+  // Handle sport selection toggle
+  const handleSportToggle = (sportId: string) => {
+    setSelectedSportIds(prev => {
+      if (prev.includes(sportId)) {
+        // Don't allow deselecting all sports
+        if (prev.length === 1) return prev;
+        return prev.filter(id => id !== sportId);
+      } else {
+        return [...prev, sportId];
+      }
+    });
+  };
+
+  const selectAllSports = () => {
+    setSelectedSportIds(sports.map(s => s.id));
   };
 
   const handleLogin = async () => {
@@ -170,7 +214,7 @@ export default function BookPage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header with User Entry */}
       <div className="bg-white rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gradient mb-2">Book a Court</h1>
             <p className="text-ocean-teal">
@@ -216,12 +260,51 @@ export default function BookPage() {
             )}
           </div>
         </div>
+
+        {/* Sport Filter */}
+        {sports.length > 0 && (
+          <div className="border-t-2 border-cool-gray pt-6">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-semibold text-almost-black">
+                Filter by Sport
+              </label>
+              {selectedSportIds.length !== sports.length && (
+                <button
+                  onClick={selectAllSports}
+                  className="text-xs text-electric-cyan hover:text-vibrant-magenta transition-colors"
+                >
+                  Select All
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sports.map((sport) => {
+                const isSelected = selectedSportIds.includes(sport.id);
+                return (
+                  <button
+                    key={sport.id}
+                    onClick={() => handleSportToggle(sport.id)}
+                    className={`
+                      px-4 py-2 rounded-lg font-semibold text-sm transition-all
+                      ${isSelected
+                        ? 'bg-gradient-to-r from-electric-cyan to-vibrant-magenta text-white shadow-md'
+                        : 'bg-cool-gray text-ocean-teal hover:bg-soft-lavender'
+                      }
+                    `}
+                  >
+                    {sport.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Calendar Grid */}
       <CalendarGrid
         selectedDate={selectedDate}
-        facilities={facilities}
+        facilities={filteredFacilities}
         reservations={reservations}
         onSlotClick={handleSlotClick}
       />
@@ -234,7 +317,7 @@ export default function BookPage() {
         selectedTime={selectedBookingTime}
         userId={userId || ''}
         currentCredits={credits}
-        facilities={facilities}
+        facilities={filteredFacilities}
         onBookingSuccess={handleBookingSuccess}
       />
 
