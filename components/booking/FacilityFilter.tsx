@@ -17,10 +17,10 @@ export default function FacilityFilter({ onFilterChange }: FacilityFilterProps) 
     try {
       const response = await fetch('/api/facilities');
       if (response.ok) {
-        const data = await response.json();
+        const data: FacilityWithSport[] = await response.json();
         setFacilities(data);
         // Select all by default
-        const allIds = new Set(data.map((f: FacilityWithSport) => f.id));
+        const allIds = new Set<string>(data.map((f) => f.id));
         setSelectedFacilities(allIds);
         onFilterChange(Array.from(allIds));
       }
@@ -54,13 +54,13 @@ export default function FacilityFilter({ onFilterChange }: FacilityFilterProps) 
   };
 
   const selectAll = () => {
-    const allIds = new Set(filteredFacilities.map((f) => f.id));
+    const allIds = new Set<string>(filteredFacilities.map((f) => f.id));
     setSelectedFacilities(allIds);
     onFilterChange(Array.from(allIds));
   };
 
   const selectNone = () => {
-    setSelectedFacilities(new Set());
+    setSelectedFacilities(new Set<string>());
     onFilterChange([]);
   };
 

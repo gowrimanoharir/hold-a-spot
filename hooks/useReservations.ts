@@ -26,7 +26,7 @@ export function useReservations(facilityId?: string, startDate?: string, endDate
         throw new Error('Failed to fetch reservations');
       }
 
-      const data = await response.json();
+      const data: ReservationWithDetails[] = await response.json();
       setReservations(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -69,7 +69,7 @@ export function useUserReservations(userId?: string) {
         throw new Error('Failed to fetch user reservations');
       }
 
-      const data = await response.json();
+      const data: ReservationWithDetails[] = await response.json();
       setReservations(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

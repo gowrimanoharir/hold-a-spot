@@ -55,7 +55,7 @@ export default function BookingModal({
         }),
       });
 
-      const data = await response.json();
+      const data: { error?: string; reservation?: unknown; remaining_credits?: number } = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create booking');

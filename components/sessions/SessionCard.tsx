@@ -34,7 +34,7 @@ export default function SessionCard({ reservation, onCancel }: SessionCardProps)
       if (response.ok) {
         onCancel();
       } else {
-        const data = await response.json();
+        const data: { error?: string } = await response.json();
         alert(data.error || 'Failed to cancel reservation');
       }
     } catch (error) {

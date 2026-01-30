@@ -74,7 +74,7 @@ export default function BookPage() {
     try {
       const response = await fetch('/api/facilities');
       if (response.ok) {
-        const data = await response.json();
+        const data: FacilityWithSport[] = await response.json();
         setFacilities(data);
       }
     } catch (error) {
@@ -105,7 +105,7 @@ export default function BookPage() {
         throw new Error('Failed to create user');
       }
 
-      const data = await response.json();
+      const data: { user: { id: string; email: string } } = await response.json();
       setUserId(data.user.id);
       
       // Save to localStorage

@@ -24,7 +24,7 @@ export function useCredits(userId?: string) {
         throw new Error('Failed to fetch credits');
       }
 
-      const data = await response.json();
+      const data: GetCreditsResponse = await response.json();
       setCredits(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
