@@ -21,9 +21,8 @@ export default function BookPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   });
   const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>([]);
   const [facilities, setFacilities] = useState<FacilityWithSport[]>([]);

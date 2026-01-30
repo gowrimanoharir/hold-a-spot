@@ -106,8 +106,16 @@ export default function WeekNavigator({
       <div className="grid grid-cols-7 gap-2">
         {weekDays.map((day) => {
           const isSelected = isSelectedDate(day);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const now = new Date();
+          const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            0,
+            0,
+            0,
+            0
+          );
           const dayNormalized = new Date(
             day.date.getFullYear(),
             day.date.getMonth(),

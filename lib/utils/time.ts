@@ -90,14 +90,15 @@ export function getWeekDates(referenceDate: Date = new Date()): Date[] {
  * @returns Monday of that week at midnight
  */
 export function getMonday(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const dateNum = date.getDate();
+  const day = date.getDay();
   
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  // Calculate difference to Monday (day 1)
+  const diff = dateNum - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
   
-  // Create a new date object to avoid mutation issues
-  return new Date(d.getFullYear(), d.getMonth(), diff, 0, 0, 0, 0);
+  return new Date(year, month, diff, 0, 0, 0, 0);
 }
 
 /**
@@ -107,14 +108,21 @@ export function getMonday(date: Date): Date {
  */
 export function getWeekDaysWithMetadata(referenceDate: Date = new Date()): WeekDay[] {
   const dates = getWeekDates(referenceDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
   return dates.map((date) => {
-    const dayDate = new Date(date);
-    dayDate.setHours(0, 0, 0, 0);
+    const dayDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
     
     return {
       date: date,
