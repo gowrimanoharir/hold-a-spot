@@ -15,11 +15,29 @@ export function generateTimeSlots(
 ): { start: Date; end: Date }[] {
   const slots: { start: Date; end: Date }[] = [];
   
-  const startOfDay = new Date(date);
-  startOfDay.setHours(facilityHours.OPEN, 0, 0, 0);
+  // Create a new date object to avoid mutation
+  const baseDate = new Date(date);
   
-  const endOfDay = new Date(date);
-  endOfDay.setHours(facilityHours.CLOSE, 0, 0, 0);
+  // Ensure we're working with the correct date at the start of day
+  const startOfDay = new Date(
+    baseDate.getFullYear(),
+    baseDate.getMonth(),
+    baseDate.getDate(),
+    facilityHours.OPEN,
+    0,
+    0,
+    0
+  );
+  
+  const endOfDay = new Date(
+    baseDate.getFullYear(),
+    baseDate.getMonth(),
+    baseDate.getDate(),
+    facilityHours.CLOSE,
+    0,
+    0,
+    0
+  );
   
   let currentTime = new Date(startOfDay);
   
@@ -51,8 +69,15 @@ export function getWeekDates(referenceDate: Date = new Date()): Date[] {
   
   // Generate 7 days starting from Monday
   for (let i = 0; i < 7; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
+    const date = new Date(
+      monday.getFullYear(),
+      monday.getMonth(),
+      monday.getDate() + i,
+      0,
+      0,
+      0,
+      0
+    );
     dates.push(date);
   }
   
@@ -71,7 +96,8 @@ export function getMonday(date: Date): Date {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
   
-  return new Date(d.setDate(diff));
+  // Create a new date object to avoid mutation issues
+  return new Date(d.getFullYear(), d.getMonth(), diff, 0, 0, 0, 0);
 }
 
 /**

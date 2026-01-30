@@ -227,6 +227,7 @@ export default function BookPage() {
         {/* Time Slot Grid */}
         <div className="lg:col-span-3">
           <TimeSlotGrid
+            key={selectedDate.toISOString()}
             selectedDate={selectedDate}
             facilities={filteredFacilities}
             reservations={reservations}

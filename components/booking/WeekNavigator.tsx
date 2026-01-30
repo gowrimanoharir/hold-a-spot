@@ -29,8 +29,16 @@ export default function WeekNavigator({
   };
 
   const goToToday = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const today = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
     onDateChange(today);
   };
 
@@ -100,16 +108,30 @@ export default function WeekNavigator({
           const isSelected = isSelectedDate(day);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const dayNormalized = new Date(day.date);
-          dayNormalized.setHours(0, 0, 0, 0);
+          const dayNormalized = new Date(
+            day.date.getFullYear(),
+            day.date.getMonth(),
+            day.date.getDate(),
+            0,
+            0,
+            0,
+            0
+          );
           const isPast = dayNormalized < today;
 
           return (
             <button
               key={day.date.toISOString()}
               onClick={() => {
-                const normalizedDate = new Date(day.date);
-                normalizedDate.setHours(0, 0, 0, 0);
+                const normalizedDate = new Date(
+                  day.date.getFullYear(),
+                  day.date.getMonth(),
+                  day.date.getDate(),
+                  0,
+                  0,
+                  0,
+                  0
+                );
                 onDateChange(normalizedDate);
               }}
               disabled={isPast}
