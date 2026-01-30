@@ -1,26 +1,179 @@
 @import "tailwindcss";
 
+/* Hold a Spot - Brand Colors & Design System */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand Colors */
+  --electric-cyan: #00D9E8;
+  --vibrant-magenta: #E91E8C;
+  --deep-purple: #7B4B94;
+  --mint-green: #4ECDC4;
+  
+  /* Supporting Colors */
+  --soft-lavender: #B8A5D1;
+  --peach: #FFB4A2;
+  --ocean-teal: #006B7D;
+  
+  /* Neutrals */
+  --almost-black: #1A1A2E;
+  --cool-gray: #E8EBF7;
+  --white: #FFFFFF;
+  
+  /* Base Theme */
+  --background: #FFFFFF;
+  --foreground: #1A1A2E;
+  
+  /* Spacing */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  
+  /* Transitions */
+  --transition-fast: 200ms ease-out;
+  --transition-normal: 300ms ease-out;
 }
 
 @theme inline {
+  /* Brand Colors */
+  --color-electric-cyan: var(--electric-cyan);
+  --color-vibrant-magenta: var(--vibrant-magenta);
+  --color-deep-purple: var(--deep-purple);
+  --color-mint-green: var(--mint-green);
+  --color-soft-lavender: var(--soft-lavender);
+  --color-peach: var(--peach);
+  --color-ocean-teal: var(--ocean-teal);
+  --color-almost-black: var(--almost-black);
+  --color-cool-gray: var(--cool-gray);
+  
+  /* Gradients */
+  --color-gradient-primary-start: var(--electric-cyan);
+  --color-gradient-primary-end: var(--vibrant-magenta);
+  --color-gradient-sport-start: var(--mint-green);
+  --color-gradient-sport-mid: var(--electric-cyan);
+  --color-gradient-sport-end: var(--deep-purple);
+  
+  /* Base */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+  
+  /* Border Radius */
+  --radius: var(--radius-md);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  
+  /* Shadows */
+  --shadow-neon: 0 0 10px rgb(0 217 232 / 0.5), 0 0 20px rgb(233 30 140 / 0.3), 0 0 30px rgb(123 75 148 / 0.2);
+  --shadow-glass: 0 8px 32px rgb(0 217 232 / 0.1);
+  
+  /* Animation Timing */
+  --ease-out-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Animations */
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Utility Classes */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--electric-cyan) 0%, var(--vibrant-magenta) 100%);
+}
+
+.gradient-sport {
+  background: linear-gradient(90deg, var(--mint-green) 0%, var(--electric-cyan) 50%, var(--deep-purple) 100%);
+}
+
+.gradient-subtle {
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--cool-gray) 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--electric-cyan) 0%, var(--vibrant-magenta) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--shadow-glass);
+}
+
+.neon-glow {
+  box-shadow: var(--shadow-neon);
+}
+
+/* Smooth Transitions */
+* {
+  transition-timing-function: var(--ease-out-smooth);
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--electric-cyan);
+  outline-offset: 2px;
+}
+
+/* Animations */
+.animate-shimmer {
+  animation: shimmer 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
 }
