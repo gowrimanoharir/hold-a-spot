@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const { user_id, facility_id, start_time, end_time } = body;
 
     // Validate required fields
-    const validation = validateRequiredFields(body, [
+    const validation = validateRequiredFields(body as unknown as Record<string, unknown>, [
       'user_id',
       'facility_id',
       'start_time',
